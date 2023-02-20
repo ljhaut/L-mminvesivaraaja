@@ -1,8 +1,5 @@
 import requests
-import json
-import re
 import xmltodict
-import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta
 
 def getSPOT(today, tomorrow):
