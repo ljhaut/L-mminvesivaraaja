@@ -1,7 +1,6 @@
 import requests
 import xmltodict
 from datetime import datetime, timedelta
-from operator import itemgetter
 
 def getSPOT(today, tomorrow):
 
@@ -16,14 +15,30 @@ def getSPOT(today, tomorrow):
 
     return xml_dict
 
-today = datetime.now().strftime('%Y%m%d')
-tomorrow = datetime.now() + timedelta(1)
-tomorrow = tomorrow.strftime('%Y%m%d')
-print(today)
-print(tomorrow)
+def todayTomorrow():
+    today = datetime.now().strftime('%Y%m%d')
+    tomorrow = datetime.now() + timedelta(1)
+    tomorrow = tomorrow.strftime('%Y%m%d')
+    return today, tomorrow
 
-today = '20230218'
-tomorrow = '20230219'
+def keskiarvot():
+    keskiarvot = []
+
+    for i in range(len(spotToday)-3):
+        ka = (float(spotToday[i]['price.amount'])+float(spotToday[i+1]['price.amount'])+float(spotToday[i+2]['price.amount'])+float(spotToday[i+3]['price.amount'])) / 4
+        tunnit = str(int(spotToday[i]['position'])-1) + '-' + str(int(spotToday[i+3]['position'])-1)
+
+        keskiarvot.append({'keskiarvo': ka, 'tunnit': tunnit})
+
+    print(keskiarvot)
+
+    mi = min(keskiarvot, key=lambda x: float(x['keskiarvo']))
+    ma = max(keskiarvot, key=lambda x: float(x['keskiarvo']))
+
+    print('\n',mi, ma)
+
+
+today, tomorrow = todayTomorrow()
 
 spot = getSPOT(today, tomorrow)
 
@@ -32,4 +47,10 @@ spotTomorrow = spot["Publication_MarketDocument"]["TimeSeries"][1]["Period"]["Po
 
 sort = sorted(spotToday, key=lambda x: float(x['price.amount']), reverse=False)
 
-print(sort)
+print(today)
+print(tomorrow)
+
+print(spotToday)
+print('\n')
+
+keskiarvot()
