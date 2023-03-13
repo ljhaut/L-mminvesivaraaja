@@ -1,6 +1,8 @@
 import requests
 import xmltodict
 import json
+import time
+#import RPi.GPIO as GPIO
 from datetime import datetime, timedelta
 
 
@@ -68,31 +70,106 @@ def tallennaArvot(lista, aika):
             json.dump(file, f, ensure_ascii=False, indent=4)
             f.close()
         print("Tiedostoon tehty lisäys päivälle", aika)
+
     else:
+
         print("Päivällä", aika, "on jo olemassa listaus tiedostossa")
         return
 
 
+# Palauttaa listan arvojen kolme halvinta tuntia
+# tulos: palauttaa listan dictejä halvoista tunneista
+# pos: palauttaa listan tunneista, jolloin halpaa
+def halvimmat(lista):
+    
+    sort = sorted(lista, key=lambda x: float(x['price.amount']), reverse=False)
+    
+    tulos = [sort[0], sort[1], sort[2]]
+    pos = [sort[0]['position'], sort[1]['position'], sort[2]['position']]
+    print("halvimmat:", tulos, pos)
+
+    return tulos, pos
 
 
-today, tomorrow = todayTomorrow()
 
-today = '20230310'
-tomorrow = '20230311'
+def main():
 
-spot = getSPOT(today, tomorrow)
+    #Alustetaan relekortti
+    ''' Relay = [5, 6, 13, 16, 19, 20, 21, 26]
 
-spotToday = spot["Publication_MarketDocument"]["TimeSeries"][0]["Period"]["Point"]
-spotTomorrow = spot["Publication_MarketDocument"]["TimeSeries"][1]["Period"]["Point"]
+    GPIO.setmode(GPIO.BCM)
+    GPIO.setwarnings(False)
 
-sort = sorted(spotToday, key=lambda x: float(x['price.amount']), reverse=False)
+    for i in range(0,8):
+        GPIO.setup(Relay[i], GPIO.OUT)
+        GPIO.output(Relay[i], GPIO.HIGH)
+ '''
 
-print(today)
-print(tomorrow)
+    päällä = False
 
-print(spotToday)
-print('\n')
-tallennaArvot(spotToday, today)
-print('\n')
+    today, tomorrow = todayTomorrow()
 
-keskiarvot(spotToday)
+    today = '20230310'
+    tomorrow = '20230311'
+
+    spot = getSPOT(today, tomorrow)
+
+    spotToday = spot["Publication_MarketDocument"]["TimeSeries"][0]["Period"]["Point"]
+    spotTomorrow = spot["Publication_MarketDocument"]["TimeSeries"][1]["Period"]["Point"]
+
+    print(today)
+    print(tomorrow)
+
+    print(spotToday)
+    print('\n')
+    print(spotTomorrow)
+    print('\n')
+    tallennaArvot(spotToday, today)
+    print('\n')
+
+    keskiarvot(spotToday)
+
+    halvat, halvpos = halvimmat(spotToday)
+
+    while True:
+
+        print("\n UUSI KIERROS \n")
+
+        tunti = datetime.now() + timedelta(hours=1)
+        tunti = tunti.replace(minute=0,second=0)
+        pos = tunti.strftime("%H")
+        tunti = tunti.strftime("%H:%M:%S")
+
+        if pos[0] == '0': 
+            pos = pos[1:]
+
+        print("position:", pos)
+        print("seuraava tunti:", tunti)
+
+        while datetime.now().strftime("%H:%M:%S") < tunti:
+                
+                # Jos tämän tunnin hinta on halvimpien joukossa, kytketään rele päälle
+                if any(d == pos for d in halvpos):
+                    if not päällä:
+                        time.sleep(2)
+                        print("Rele päällä")
+                        päällä = True
+                        ''' try:
+                            GPIO.output(5, GPIO.LOW)
+                        except:
+                            GPIO.cleanup() '''
+                    else:
+                        print("Rele on jo päällä")
+                else: 
+                    time.sleep(2)
+                    print("Rele pois päältä")
+                    päällä = False
+                    #GPIO.output(5, GPIO.HIGH)
+
+                nyt = datetime.now().strftime("%H:%M:%S")
+                print(nyt)
+
+                time.sleep(2)
+
+
+main()
